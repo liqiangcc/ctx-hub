@@ -7,6 +7,7 @@ pub fn make_fts_query(query: &str) -> String {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests {
     use super::*;
 
