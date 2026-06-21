@@ -67,3 +67,56 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
     migration::ensure_schema_version(conn)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn object_exists(conn: &Connection, object_type: &str, name: &str) -> Result<bool> {
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = ?1 AND name = ?2",
+            [object_type, name],
+            |row| row.get(0),
+        )?;
+        Ok(count == 1)
+    }
+
+    #[test]
+    fn init_schema_creates_records_table() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        init_schema(&conn)?;
+
+        assert!(object_exists(&conn, "table", "records")?);
+        Ok(())
+    }
+
+    #[test]
+    fn init_schema_creates_fts_tables() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        init_schema(&conn)?;
+
+        assert!(object_exists(&conn, "table", "records_fts")?);
+        assert!(object_exists(&conn, "table", "records_trigram")?);
+        Ok(())
+    }
+
+    #[test]
+    fn init_schema_creates_insert_trigger() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        init_schema(&conn)?;
+
+        assert!(object_exists(&conn, "trigger", "records_ai")?);
+        Ok(())
+    }
+
+    #[test]
+    fn init_schema_is_idempotent() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        init_schema(&conn)?;
+        init_schema(&conn)?;
+
+        assert!(object_exists(&conn, "table", "records")?);
+        assert_eq!(migration::current_schema_version(&conn)?, Some(1));
+        Ok(())
+    }
+}
