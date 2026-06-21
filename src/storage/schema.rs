@@ -69,6 +69,7 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests {
     use super::*;
 
