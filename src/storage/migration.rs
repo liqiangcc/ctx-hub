@@ -26,3 +26,46 @@ pub fn current_schema_version(conn: &Connection) -> Result<Option<i64>> {
     let version = stmt.query_row([], |row| row.get::<_, Option<i64>>(0))?;
     Ok(version)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn creates_schema_migrations_table() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        ensure_schema_version(&conn)?;
+
+        let table_name: String = conn.query_row(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+            [],
+            |row| row.get(0),
+        )?;
+
+        assert_eq!(table_name, "schema_migrations");
+        Ok(())
+    }
+
+    #[test]
+    fn records_current_schema_version() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        ensure_schema_version(&conn)?;
+
+        assert_eq!(current_schema_version(&conn)?, Some(CURRENT_SCHEMA_VERSION));
+        Ok(())
+    }
+
+    #[test]
+    fn ensure_schema_version_is_idempotent() -> Result<()> {
+        let conn = Connection::open_in_memory()?;
+        ensure_schema_version(&conn)?;
+        ensure_schema_version(&conn)?;
+
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| {
+            row.get(0)
+        })?;
+
+        assert_eq!(count, 1);
+        Ok(())
+    }
+}
