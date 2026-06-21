@@ -5,6 +5,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use crate::core::ngram::make_search_ngrams;
+use crate::core::query::make_fts_query;
 use crate::core::record::{RecordDetail, RecordInput};
 use crate::core::search::SearchResult;
 use crate::storage::{schema, Storage};
@@ -327,12 +328,4 @@ fn open_db(path: &Path) -> Result<Connection> {
             .with_context(|| format!("failed to create db directory: {}", parent.display()))?;
     }
     Connection::open(path).with_context(|| format!("failed to open db: {}", path.display()))
-}
-
-fn make_fts_query(query: &str) -> String {
-    query
-        .split_whitespace()
-        .map(|token| format!("\"{}\"", token.replace('"', "\"\"")))
-        .collect::<Vec<_>>()
-        .join(" ")
 }
