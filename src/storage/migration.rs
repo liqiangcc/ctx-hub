@@ -31,16 +31,21 @@ pub fn current_schema_version(conn: &Connection) -> Result<Option<i64>> {
 mod tests {
     use super::*;
 
+    fn migration_count(conn: &Connection) -> Result<i64> {
+        let mut stmt = conn.prepare("SELECT COUNT(*) FROM schema_migrations")?;
+        let count = stmt.query_row([], |row| row.get(0))?;
+        Ok(count)
+    }
+
     #[test]
     fn creates_schema_migrations_table() -> Result<()> {
         let conn = Connection::open_in_memory()?;
         ensure_schema_version(&conn)?;
 
-        let table_name: String = conn.query_row(
+        let mut stmt = conn.prepare(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
-            [],
-            |row| row.get(0),
         )?;
+        let table_name: String = stmt.query_row([], |row| row.get(0))?;
 
         assert_eq!(table_name, "schema_migrations");
         Ok(())
@@ -51,7 +56,8 @@ mod tests {
         let conn = Connection::open_in_memory()?;
         ensure_schema_version(&conn)?;
 
-        assert_eq!(current_schema_version(&conn)?, Some(CURRENT_SCHEMA_VERSION));
+        let version = current_schema_version(&conn)?;
+        assert_eq!(version, Some(CURRENT_SCHEMA_VERSION));
         Ok(())
     }
 
@@ -61,11 +67,7 @@ mod tests {
         ensure_schema_version(&conn)?;
         ensure_schema_version(&conn)?;
 
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| {
-            row.get(0)
-        })?;
-
-        assert_eq!(count, 1);
+        assert_eq!(migration_count(&conn)?, 1);
         Ok(())
     }
 }
