@@ -36,7 +36,7 @@ enum Commands {
         service: Option<String>,
         #[arg(long)]
         env: Option<String>,
-        #[arg(long)]
+        #[arg(long = "source")]
         origin: Option<String>,
     },
     Search {
