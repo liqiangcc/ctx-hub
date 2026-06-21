@@ -104,7 +104,8 @@ fn main() -> Result<()> {
             }
             DbCommand::Info => {
                 init_db(&conn)?;
-                let count: i64 = conn.query_row("SELECT COUNT(*) FROM records", [], |row| row.get(0))?;
+                let count: i64 =
+                    conn.query_row("SELECT COUNT(*) FROM records", [], |row| row.get(0))?;
                 println!("db: {}", db_path.display());
                 println!("records: {count}");
             }
@@ -264,7 +265,10 @@ fn init_db(conn: &Connection) -> Result<()> {
 
 fn rebuild_index(conn: &Connection) -> Result<()> {
     conn.execute("INSERT INTO records_fts(records_fts) VALUES('rebuild')", [])?;
-    conn.execute("INSERT INTO records_trigram(records_trigram) VALUES('rebuild')", [])?;
+    conn.execute(
+        "INSERT INTO records_trigram(records_trigram) VALUES('rebuild')",
+        [],
+    )?;
     Ok(())
 }
 
@@ -445,7 +449,8 @@ fn search_by_tag(conn: &Connection, tag: &str, limit: usize) -> Result<Vec<Searc
             source: "tag".to_string(),
         })
     })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
 }
 
 fn show_record(conn: &Connection, key_or_id: &str) -> Result<()> {
@@ -460,12 +465,24 @@ fn show_record(conn: &Connection, key_or_id: &str) -> Result<()> {
     let mut rows = stmt.query(params![key_or_id])?;
     if let Some(row) = rows.next()? {
         println!("id: {}", row.get::<_, String>(0)?);
-        println!("key: {}", row.get::<_, Option<String>>(1)?.unwrap_or_default());
+        println!(
+            "key: {}",
+            row.get::<_, Option<String>>(1)?.unwrap_or_default()
+        );
         println!("title: {}", row.get::<_, String>(2)?);
         println!("tags: {}", row.get::<_, String>(4)?);
-        println!("service: {}", row.get::<_, Option<String>>(5)?.unwrap_or_default());
-        println!("env: {}", row.get::<_, Option<String>>(6)?.unwrap_or_default());
-        println!("source: {}", row.get::<_, Option<String>>(7)?.unwrap_or_default());
+        println!(
+            "service: {}",
+            row.get::<_, Option<String>>(5)?.unwrap_or_default()
+        );
+        println!(
+            "env: {}",
+            row.get::<_, Option<String>>(6)?.unwrap_or_default()
+        );
+        println!(
+            "source: {}",
+            row.get::<_, Option<String>>(7)?.unwrap_or_default()
+        );
         println!("created_at: {}", row.get::<_, String>(8)?);
         println!("updated_at: {}", row.get::<_, String>(9)?);
         println!("\n{}", row.get::<_, String>(3)?);
@@ -496,7 +513,11 @@ fn print_results(results: &[SearchResult]) {
         return;
     }
     for (idx, item) in results.iter().enumerate() {
-        println!("[{}] {}", idx + 1, item.key.as_deref().unwrap_or("<no-key>"));
+        println!(
+            "[{}] {}",
+            idx + 1,
+            item.key.as_deref().unwrap_or("<no-key>")
+        );
         println!("title: {}", item.title);
         println!("tags: {}", item.tags_text);
         if let Some(service) = &item.service {
@@ -552,6 +573,10 @@ fn push_ngrams(chars: &[char], grams: &mut Vec<String>) {
 fn is_cjk(ch: char) -> bool {
     matches!(
         ch as u32,
-        0x4E00..=0x9FFF | 0x3400..=0x4DBF | 0xF900..=0xFAFF | 0x3040..=0x30FF | 0xAC00..=0xD7AF
+        0x4E00..=0x9FFF
+            | 0x3400..=0x4DBF
+            | 0xF900..=0xFAFF
+            | 0x3040..=0x30FF
+            | 0xAC00..=0xD7AF
     )
 }
