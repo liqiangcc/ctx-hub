@@ -40,6 +40,7 @@ fn is_cjk(ch: char) -> bool {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests {
     use super::*;
 
