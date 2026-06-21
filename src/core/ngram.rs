@@ -43,21 +43,19 @@ fn is_cjk(ch: char) -> bool {
 mod tests {
     use super::*;
 
-    fn grams(text: &str) -> Vec<String> {
+    fn contains_gram(text: &str, gram: &str) -> bool {
         make_search_ngrams(text)
             .split_whitespace()
-            .map(ToOwned::to_owned)
-            .collect()
+            .any(|item| item == gram)
     }
 
     #[test]
     fn generates_two_and_three_char_chinese_ngrams() {
-        let result = grams("支付失败");
-        assert!(result.contains(&"支付".to_string()));
-        assert!(result.contains(&"付失".to_string()));
-        assert!(result.contains(&"失败".to_string()));
-        assert!(result.contains(&"支付失".to_string()));
-        assert!(result.contains(&"付失败".to_string()));
+        assert!(contains_gram("支付失败", "支付"));
+        assert!(contains_gram("支付失败", "付失"));
+        assert!(contains_gram("支付失败", "失败"));
+        assert!(contains_gram("支付失败", "支付失"));
+        assert!(contains_gram("支付失败", "付失败"));
     }
 
     #[test]
@@ -67,17 +65,19 @@ mod tests {
 
     #[test]
     fn handles_mixed_text_by_cjk_runs() {
-        let result = grams("payment支付失败-service订单异常");
-        assert!(result.contains(&"支付".to_string()));
-        assert!(result.contains(&"失败".to_string()));
-        assert!(result.contains(&"订单".to_string()));
-        assert!(result.contains(&"异常".to_string()));
+        assert!(contains_gram("payment支付失败-service订单异常", "支付"));
+        assert!(contains_gram("payment支付失败-service订单异常", "失败"));
+        assert!(contains_gram("payment支付失败-service订单异常", "订单"));
+        assert!(contains_gram("payment支付失败-service订单异常", "异常"));
     }
 
     #[test]
     fn deduplicates_repeated_ngrams() {
-        let result = grams("支付支付");
-        let count = result.iter().filter(|item| item.as_str() == "支付").count();
+        let count = make_search_ngrams("支付支付")
+            .split_whitespace()
+            .filter(|item| *item == "支付")
+            .count();
+
         assert_eq!(count, 1);
     }
 
