@@ -28,6 +28,7 @@ pub fn current_schema_version(conn: &Connection) -> Result<Option<i64>> {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests {
     use super::*;
 
