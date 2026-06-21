@@ -12,26 +12,32 @@ mod tests {
 
     #[test]
     fn wraps_single_token_in_quotes() {
-        assert_eq!(make_fts_query("payment"), "\"payment\"");
+        let actual = make_fts_query("payment");
+        assert_eq!(actual, "\"payment\"");
     }
 
     #[test]
     fn preserves_dash_inside_quoted_token() {
-        assert_eq!(make_fts_query("payment-service"), "\"payment-service\"");
+        let actual = make_fts_query("payment-service");
+        assert_eq!(actual, "\"payment-service\"");
     }
 
     #[test]
     fn splits_whitespace_into_required_terms() {
-        assert_eq!(make_fts_query("clean package"), "\"clean\" \"package\"");
+        let actual = make_fts_query("clean package");
+        assert_eq!(actual, "\"clean\" \"package\"");
     }
 
     #[test]
     fn escapes_embedded_double_quotes() {
-        assert_eq!(make_fts_query("mock \"token\""), "\"mock\" \"\"\"token\"\"\"");
+        let actual = make_fts_query("mock \"token\"");
+        let expected = "\"mock\" \"\"\"token\"\"\"";
+        assert_eq!(actual, expected);
     }
 
     #[test]
     fn empty_query_stays_empty() {
-        assert_eq!(make_fts_query("   "), "");
+        let actual = make_fts_query("   ");
+        assert_eq!(actual, "");
     }
 }
