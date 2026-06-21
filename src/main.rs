@@ -359,7 +359,8 @@ fn search_records(conn: &Connection, query: &str, limit: usize) -> Result<Vec<Se
         }
     }
 
-    if query.chars().count() >= 3 && results.len() < limit {
+    let trigram_query = make_fts_query(query);
+    if !trigram_query.is_empty() && query.chars().count() >= 3 && results.len() < limit {
         let mut stmt = conn.prepare(
             r#"
             SELECT
@@ -376,7 +377,7 @@ fn search_records(conn: &Connection, query: &str, limit: usize) -> Result<Vec<Se
             LIMIT ?2
             "#,
         )?;
-        let rows = stmt.query_map(params![query, limit as i64], |row| {
+        let rows = stmt.query_map(params![trigram_query, limit as i64], |row| {
             Ok(SearchResult {
                 rowid: row.get(0)?,
                 key: row.get(1)?,
