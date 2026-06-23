@@ -109,30 +109,36 @@ usage_count: 0
 content: 支付失败时先查询 payment_callback_log，再查询 payment-service 日志。
 ```
 
-## 计划中的 CLI
+## 当前 CLI
 
-预期命令：
+可用命令：
 
 ```bash
-ctx add
+ctx db init
+ctx db info
+ctx db rebuild-index
+ctx add --title <title> --content <content> [--key <key>] [--tag <tag>]
 ctx search <keyword>
 ctx tag <tag>
-ctx show <key|index>
-ctx copy <key|index>
+ctx show <key-or-id>
+ctx copy <key-or-id> [--field content|command|url|key|title|full]
 ctx list-tags
-ctx mcp
 ```
 
 示例：
 
 ```bash
+ctx db init
+ctx add --key runbook.payment.failed --title "支付失败排查规则" --content "先查 payment_callback_log" --tag payment --tag runbook
 ctx search payment
 ctx search "支付失败"
-ctx tag maven
+ctx tag runbook
 ctx show runbook.payment.failed
-ctx copy command.order-service.test
-ctx mcp
+ctx copy runbook.payment.failed
+ctx copy runbook.payment.failed --field full --print
 ```
+
+`ctx copy` 默认复制正文到系统剪贴板；`--field` 可以选择复制正文、命令/URL 内容、Key、标题或整条记录。没有可用剪贴板命令时，CLI 会提示原因并把选中的内容输出到 stdout，方便手动复制。`--print` 会直接输出选中内容，不访问剪贴板。
 
 ## AI 使用方式
 

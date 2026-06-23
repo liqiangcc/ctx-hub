@@ -357,8 +357,8 @@ MVP 推荐命令：
 ctx add
 ctx search <keyword>
 ctx tag <tag>
-ctx show <key|index>
-ctx copy <key|index>
+ctx show <key|id>
+ctx copy <key|id> [--field content|command|url|key|title|full]
 ctx list-tags
 ctx mcp
 ```
@@ -371,6 +371,7 @@ ctx search "支付失败"
 ctx tag maven
 ctx show runbook.payment.failed
 ctx copy command.order-service.build
+ctx copy runbook.payment.failed --field full --print
 ctx list-tags
 ctx mcp
 ```
