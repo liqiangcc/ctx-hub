@@ -30,16 +30,23 @@ pub fn print_results(results: &[SearchResult]) {
 }
 
 pub fn print_record_detail(record: &RecordDetail) {
-    println!("id: {}", record.id);
-    println!("key: {}", record.key.as_deref().unwrap_or_default());
-    println!("title: {}", record.title);
-    println!("tags: {}", record.tags_text);
-    println!("service: {}", record.service.as_deref().unwrap_or_default());
-    println!("env: {}", record.env.as_deref().unwrap_or_default());
-    println!("source: {}", record.source.as_deref().unwrap_or_default());
-    println!("created_at: {}", record.created_at);
-    println!("updated_at: {}", record.updated_at);
-    println!("\n{}", record.content);
+    println!("{}", format_record_detail(record));
+}
+
+pub fn format_record_detail(record: &RecordDetail) -> String {
+    format!(
+        "id: {}\nkey: {}\ntitle: {}\ntags: {}\nservice: {}\nenv: {}\nsource: {}\ncreated_at: {}\nupdated_at: {}\n\n{}",
+        record.id,
+        record.key.as_deref().unwrap_or_default(),
+        record.title,
+        record.tags_text,
+        record.service.as_deref().unwrap_or_default(),
+        record.env.as_deref().unwrap_or_default(),
+        record.source.as_deref().unwrap_or_default(),
+        record.created_at,
+        record.updated_at,
+        record.content
+    )
 }
 
 pub fn print_tags(tags: &BTreeMap<String, usize>) {
