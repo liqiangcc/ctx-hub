@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::path::{Path, PathBuf};
 
+use crate::core::jsonl::{ImportSummary, JsonlRecord, JSONL_SCHEMA_VERSION};
 use crate::core::ngram::make_search_ngrams;
 use crate::core::query::make_fts_query;
 use crate::core::record::{RecordDetail, RecordInput};
@@ -82,6 +83,57 @@ impl SqliteStorage {
             ],
         )?;
         Ok(())
+    }
+
+    pub fn export_jsonl_records(&self) -> Result<Vec<JsonlRecord>> {
+        let mut stmt = self.conn.prepare(
+            r#"
+            SELECT id, key, title, content, tags_json, service, env, source, created_at, updated_at
+            FROM records
+            WHERE status = 'active'
+            ORDER BY created_at ASC, rowid ASC
+            "#,
+        )?;
+        let rows = stmt.query_map([], |row| {
+            let tags_json: String = row.get(4)?;
+            let tags = serde_json::from_str::<Vec<String>>(&tags_json).map_err(|err| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    4,
+                    rusqlite::types::Type::Text,
+                    Box::new(err),
+                )
+            })?;
+            Ok(JsonlRecord {
+                schema_version: JSONL_SCHEMA_VERSION,
+                id: row.get(0)?,
+                key: row.get(1)?,
+                title: row.get(2)?,
+                content: row.get(3)?,
+                tags,
+                service: row.get(5)?,
+                env: row.get(6)?,
+                source: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+            })
+        })?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Into::into)
+    }
+
+    pub fn import_jsonl_records(&self, records: Vec<JsonlRecord>) -> Result<ImportSummary> {
+        let mut summary = ImportSummary::default();
+        for record in records {
+            let record = record.into_record_input()?;
+            if self.has_duplicate_record(&record.id, record.key.as_deref())? {
+                summary.skipped_duplicates += 1;
+                continue;
+            }
+
+            self.insert_record(&record)?;
+            summary.imported += 1;
+        }
+        Ok(summary)
     }
 
     pub fn search_records(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>> {
@@ -277,6 +329,21 @@ impl SqliteStorage {
         } else {
             Ok(None)
         }
+    }
+
+    fn has_duplicate_record(&self, id: &str, key: Option<&str>) -> Result<bool> {
+        self.conn
+            .query_row(
+                r#"
+                SELECT EXISTS(
+                  SELECT 1 FROM records
+                  WHERE id = ?1 OR (?2 IS NOT NULL AND key = ?2)
+                )
+                "#,
+                params![id, key],
+                |row| row.get(0),
+            )
+            .map_err(Into::into)
     }
 }
 

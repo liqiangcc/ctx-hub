@@ -1,9 +1,11 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
-use std::io::Write;
+use std::fs::File;
+use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+use crate::core::jsonl::{read_jsonl, write_jsonl};
 use crate::core::output::{format_record_detail, print_record_detail, print_results, print_tags};
 use crate::core::record::RecordInput;
 use crate::storage::sqlite::SqliteStorage;
@@ -88,6 +90,16 @@ enum DbCommand {
     Info,
     #[command(about = "Rebuild SQLite FTS indexes")]
     RebuildIndex,
+    #[command(about = "Export active records")]
+    Export {
+        #[arg(long, value_enum, default_value_t = ExportFormat::Jsonl)]
+        format: ExportFormat,
+    },
+    #[command(about = "Import records from JSONL")]
+    Import {
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+    },
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -98,6 +110,11 @@ enum CopyField {
     Key,
     Title,
     Full,
+}
+
+#[derive(Copy, Clone, Debug, ValueEnum)]
+enum ExportFormat {
+    Jsonl,
 }
 
 pub fn run() -> Result<()> {
@@ -171,6 +188,26 @@ fn run_db_command(storage: &SqliteStorage, command: DbCommand) -> Result<()> {
             storage.init()?;
             storage.rebuild_index()?;
             println!("fts indexes rebuilt");
+        }
+        DbCommand::Export { format } => {
+            storage.init()?;
+            match format {
+                ExportFormat::Jsonl => {
+                    let records = storage.export_jsonl_records()?;
+                    let stdout = io::stdout();
+                    let mut stdout = stdout.lock();
+                    write_jsonl(&records, &mut stdout)?;
+                }
+            }
+        }
+        DbCommand::Import { file } => {
+            storage.init()?;
+            let file_reader = File::open(&file)
+                .with_context(|| format!("failed to open import file: {}", file.display()))?;
+            let records = read_jsonl(BufReader::new(file_reader))?;
+            let summary = storage.import_jsonl_records(records)?;
+            println!("imported: {}", summary.imported);
+            println!("skipped_duplicates: {}", summary.skipped_duplicates);
         }
     }
 

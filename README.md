@@ -117,6 +117,8 @@ content: 支付失败时先查询 payment_callback_log，再查询 payment-servi
 ctx db init
 ctx db info
 ctx db rebuild-index
+ctx db export --format jsonl
+ctx db import <file>
 ctx add --title <title> --content <content> [--key <key>] [--tag <tag>]
 ctx search <keyword>
 ctx tag <tag>
@@ -130,6 +132,8 @@ ctx list-tags
 ```bash
 ctx db init
 ctx add --key runbook.payment.failed --title "支付失败排查规则" --content "先查 payment_callback_log" --tag payment --tag runbook
+ctx db export --format jsonl > records.jsonl
+ctx db import records.jsonl
 ctx search payment
 ctx search "支付失败"
 ctx tag runbook
@@ -139,6 +143,8 @@ ctx copy runbook.payment.failed --field full --print
 ```
 
 `ctx copy` 默认复制正文到系统剪贴板；`--field` 可以选择复制正文、命令/URL 内容、Key、标题或整条记录。没有可用剪贴板命令时，CLI 会提示原因并把选中的内容输出到 stdout，方便手动复制。`--print` 会直接输出选中内容，不访问剪贴板。
+
+`ctx db export --format jsonl` 会把 active 记录输出为 JSONL。每行包含 `schema_version`、`id`、`key`、`title`、`content`、`tags`、`service`、`env`、`source`、`created_at` 和 `updated_at`。`ctx db import <file>` 导入相同 schema；如果目标库已经存在相同 `id` 或非空 `key`，该行会被跳过并计入 `skipped_duplicates`，不会覆盖现有记录。
 
 ## AI 使用方式
 

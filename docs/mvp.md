@@ -360,6 +360,8 @@ ctx tag <tag>
 ctx show <key|id>
 ctx copy <key|id> [--field content|command|url|key|title|full]
 ctx list-tags
+ctx db export --format jsonl
+ctx db import <file>
 ctx mcp
 ```
 
@@ -373,6 +375,8 @@ ctx show runbook.payment.failed
 ctx copy command.order-service.build
 ctx copy runbook.payment.failed --field full --print
 ctx list-tags
+ctx db export --format jsonl > records.jsonl
+ctx db import records.jsonl
 ctx mcp
 ```
 
