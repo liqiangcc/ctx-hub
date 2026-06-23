@@ -1,9 +1,8 @@
 use ctx_hub::core::ngram::make_search_ngrams;
 
-const CJK_A: &str = "\u{4E0A}";
-const CJK_B: &str = "\u{4E0B}";
-const CJK_C: &str = "\u{6587}";
-const CJK_D: &str = "\u{6863}";
+fn cjk(codepoint: u32) -> char {
+    char::from_u32(codepoint).expect("valid cjk codepoint")
+}
 
 fn contains_gram(text: &str, gram: &str) -> bool {
     make_search_ngrams(text)
@@ -13,10 +12,14 @@ fn contains_gram(text: &str, gram: &str) -> bool {
 
 #[test]
 fn generates_two_and_three_char_cjk_ngrams() {
-    let text = format!("{CJK_A}{CJK_B}{CJK_C}");
-    let gram_ab = format!("{CJK_A}{CJK_B}");
-    let gram_bc = format!("{CJK_B}{CJK_C}");
-    let gram_abc = format!("{CJK_A}{CJK_B}{CJK_C}");
+    let a = cjk(0x4e0a);
+    let b = cjk(0x4e0b);
+    let c = cjk(0x6587);
+
+    let text = format!("{a}{b}{c}");
+    let gram_ab = format!("{a}{b}");
+    let gram_bc = format!("{b}{c}");
+    let gram_abc = format!("{a}{b}{c}");
 
     assert!(contains_gram(&text, &gram_ab));
     assert!(contains_gram(&text, &gram_bc));
@@ -30,9 +33,14 @@ fn ignores_non_cjk_text() {
 
 #[test]
 fn handles_mixed_text_by_cjk_runs() {
-    let text = format!("abc{CJK_A}{CJK_B}-def{CJK_C}{CJK_D}");
-    let gram_ab = format!("{CJK_A}{CJK_B}");
-    let gram_cd = format!("{CJK_C}{CJK_D}");
+    let a = cjk(0x4e0a);
+    let b = cjk(0x4e0b);
+    let c = cjk(0x6587);
+    let d = cjk(0x6863);
+
+    let text = format!("abc{a}{b}-def{c}{d}");
+    let gram_ab = format!("{a}{b}");
+    let gram_cd = format!("{c}{d}");
 
     assert!(contains_gram(&text, &gram_ab));
     assert!(contains_gram(&text, &gram_cd));
@@ -40,8 +48,11 @@ fn handles_mixed_text_by_cjk_runs() {
 
 #[test]
 fn deduplicates_repeated_ngrams() {
-    let text = format!("{CJK_A}{CJK_B}{CJK_A}{CJK_B}");
-    let gram_ab = format!("{CJK_A}{CJK_B}");
+    let a = cjk(0x4e0a);
+    let b = cjk(0x4e0b);
+
+    let text = format!("{a}{b}{a}{b}");
+    let gram_ab = format!("{a}{b}");
     let count = make_search_ngrams(&text)
         .split_whitespace()
         .filter(|item| *item == gram_ab)
@@ -52,5 +63,8 @@ fn deduplicates_repeated_ngrams() {
 
 #[test]
 fn short_single_char_cjk_input_has_no_ngrams() {
-    assert!(make_search_ngrams(CJK_A).is_empty());
+    let a = cjk(0x4e0a);
+    let text = a.to_string();
+
+    assert!(make_search_ngrams(&text).is_empty());
 }
