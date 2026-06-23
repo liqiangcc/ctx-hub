@@ -85,6 +85,11 @@ impl SqliteStorage {
     }
 
     pub fn search_records(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>> {
+        let query = query.trim();
+        if query.is_empty() || limit == 0 {
+            return Ok(Vec::new());
+        }
+
         let mut results = Vec::new();
         let mut seen = HashSet::new();
 
@@ -104,7 +109,7 @@ impl SqliteStorage {
                   r.tags_text,
                   r.service,
                   r.env,
-                  snippet(records_fts, 2, '[', ']', '...', 32) AS snippet,
+                  snippet(records_fts, -1, '[', ']', '...', 32) AS snippet,
                   bm25(records_fts, 8.0, 10.0, 3.0, 5.0, 4.0, 2.0, 2.0, 1.0) AS rank
                 FROM records_fts
                 JOIN records r ON r.rowid = records_fts.rowid
@@ -204,17 +209,21 @@ impl SqliteStorage {
     }
 
     pub fn search_by_tag(&self, tag: &str, limit: usize) -> Result<Vec<SearchResult>> {
-        let pattern = format!("%{}%", tag);
+        let tag = tag.trim();
+        if tag.is_empty() || limit == 0 {
+            return Ok(Vec::new());
+        }
+
         let mut stmt = self.conn.prepare(
             r#"
             SELECT rowid, key, title, tags_text, service, env, substr(content, 1, 160)
             FROM records
-            WHERE tags_text LIKE ?1
+            WHERE instr(' ' || tags_text || ' ', ' ' || ?1 || ' ') > 0
             ORDER BY updated_at DESC
             LIMIT ?2
             "#,
         )?;
-        let rows = stmt.query_map(params![pattern, limit as i64], |row| {
+        let rows = stmt.query_map(params![tag, limit as i64], |row| {
             Ok(SearchResult {
                 rowid: row.get(0)?,
                 key: row.get(1)?,
