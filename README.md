@@ -61,6 +61,47 @@ SQLite 不要求用户单独安装。MVP 阶段应使用 `rusqlite` 的 bundled 
 
 JSONL 不再作为主存储和主搜索方案，仅保留为导入、导出、备份和迁移格式。
 
+## 安装与快速开始
+
+前置要求：
+
+- 已安装 Rust stable 工具链
+- 本地可以运行 `cargo`
+
+从源码目录构建 release 版本：
+
+```bash
+cargo build --release --all-features
+```
+
+构建完成后可以直接运行生成的二进制：
+
+```bash
+# Linux / macOS
+./target/release/ctx db init
+
+# Windows PowerShell
+.\target\release\ctx.exe db init
+```
+
+也可以安装到 Cargo bin 目录，之后直接使用 `ctx`：
+
+```bash
+cargo install --path .
+ctx db init
+```
+
+下面的示例默认 `ctx` 已经在 `PATH` 中；如果没有安装，请把 `ctx` 替换为 `./target/release/ctx` 或 `.\target\release\ctx.exe`。
+
+初始化数据库并添加、搜索一条记录：
+
+```bash
+ctx db init
+ctx add --key runbook.payment.failed --title "支付失败排查规则" --content "先查 payment_callback_log" --tag payment --tag runbook
+ctx search payment
+ctx show runbook.payment.failed
+```
+
 ## 核心能力
 
 首期能力：
@@ -128,6 +169,13 @@ ctx list-tags
 ctx mcp
 ```
 
+全局数据库路径可以通过 `--db <path>` 指定：
+
+```bash
+ctx --db /absolute/path/to/ctx-hub.db db init
+ctx --db /absolute/path/to/ctx-hub.db search payment
+```
+
 示例：
 
 ```bash
@@ -148,6 +196,70 @@ ctx mcp
 
 `ctx db export --format jsonl` 会把 active 记录输出为 JSONL。每行包含 `schema_version`、`id`、`key`、`title`、`content`、`tags`、`service`、`env`、`source`、`created_at` 和 `updated_at`。`ctx db import <file>` 导入相同 schema；如果目标库已经存在相同 `id` 或非空 `key`，该行会被跳过并计入 `skipped_duplicates`，不会覆盖现有记录。
 
+## 数据库路径
+
+所有命令使用同一套数据库路径解析规则，优先级从高到低为：
+
+1. 命令行全局参数 `--db <path>`
+2. 环境变量 `CTX_HUB_DB`
+3. 默认路径
+
+默认路径：
+
+```text
+Linux / macOS: ~/.ctx-hub/ctx-hub.db
+Windows:       %USERPROFILE%\.ctx-hub\ctx-hub.db
+```
+
+打开数据库时会自动创建父目录。使用环境变量可以把所有命令固定到同一个自定义数据库：
+
+```bash
+export CTX_HUB_DB="$HOME/.ctx-hub/work.db"
+ctx db init
+ctx search payment
+```
+
+Windows PowerShell：
+
+```powershell
+$env:CTX_HUB_DB="$env:USERPROFILE\.ctx-hub\work.db"
+ctx db init
+ctx search payment
+```
+
+`--db` 适合临时指定某个库，优先级高于 `CTX_HUB_DB`：
+
+```bash
+ctx --db ./tmp/ctx-hub.db db init
+ctx --db ./tmp/ctx-hub.db add --title "本地测试" --content "临时库记录"
+```
+
+## 备份和恢复
+
+推荐使用 JSONL 做备份和迁移：
+
+```bash
+ctx db export --format jsonl > ctx-hub.backup.jsonl
+```
+
+恢复到当前数据库：
+
+```bash
+ctx db import ctx-hub.backup.jsonl
+```
+
+恢复到新数据库：
+
+```bash
+CTX_HUB_DB="$PWD/restored.db" ctx db init
+CTX_HUB_DB="$PWD/restored.db" ctx db import ctx-hub.backup.jsonl
+CTX_HUB_DB="$PWD/restored.db" ctx search payment
+```
+
+导入不会覆盖已有记录。如果目标库已经存在相同 `id` 或非空 `key`，该行会被跳过并计入 `skipped_duplicates`。
+
+如果要直接复制 SQLite 数据库文件，请先停止正在使用该数据库的 `ctx mcp` 进程或其他写入命令。跨版本迁移优先使用 JSONL，因为它是明确支持的导入、导出和备份格式。
+
 `ctx mcp` 通过 stdio 启动只读 MCP server。MVP 只提供这些工具：`search_context`、`get_context_by_key`、`list_tags`、`get_service_context`。MCP 不提供新增、导入、导出、修改、删除或命令执行能力。
 
 示例 MCP 配置：
@@ -162,6 +274,8 @@ ctx mcp
   }
 }
 ```
+
+如果 `ctx` 不在 MCP 客户端的 `PATH` 中，请把 `command` 改成可执行文件的绝对路径，例如 `/Users/me/.cargo/bin/ctx`、`/absolute/path/to/target/release/ctx` 或 `C:\\Users\\me\\.cargo\\bin\\ctx.exe`。建议显式传入 `--db`，这样 MCP 客户端和日常 CLI 命令会读取同一个数据库。
 
 ## AI 使用方式
 
