@@ -18,5 +18,6 @@ pub trait Storage {
     fn search_records(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>>;
     fn get_record(&self, key_or_id: &str) -> Result<Option<RecordDetail>>;
     fn search_by_tag(&self, tag: &str, limit: usize) -> Result<Vec<SearchResult>>;
+    fn search_by_service(&self, service: &str, limit: usize) -> Result<Vec<SearchResult>>;
     fn list_tags(&self) -> Result<BTreeMap<String, usize>>;
 }

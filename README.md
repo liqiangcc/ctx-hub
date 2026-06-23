@@ -54,7 +54,7 @@ Context Hub MVP 阶段优先采用 Rust 实现。
 MVP 推荐技术路线：
 
 ```text
-Rust + clap + serde + rusqlite + SQLite FTS5 + rmcp + GitHub Actions
+Rust + clap + serde + rusqlite + SQLite FTS5 + stdio MCP + GitHub Actions
 ```
 
 SQLite 不要求用户单独安装。MVP 阶段应使用 `rusqlite` 的 bundled 构建方式，将 SQLite 作为嵌入式库随应用一起编译和分发。用户安装 Context Hub 后，只需要运行 `ctx` 可执行文件；应用会在本地创建和维护 `ctx-hub.db` 数据文件。
@@ -125,6 +125,7 @@ ctx tag <tag>
 ctx show <key-or-id>
 ctx copy <key-or-id> [--field content|command|url|key|title|full]
 ctx list-tags
+ctx mcp
 ```
 
 示例：
@@ -140,11 +141,27 @@ ctx tag runbook
 ctx show runbook.payment.failed
 ctx copy runbook.payment.failed
 ctx copy runbook.payment.failed --field full --print
+ctx mcp
 ```
 
 `ctx copy` 默认复制正文到系统剪贴板；`--field` 可以选择复制正文、命令/URL 内容、Key、标题或整条记录。没有可用剪贴板命令时，CLI 会提示原因并把选中的内容输出到 stdout，方便手动复制。`--print` 会直接输出选中内容，不访问剪贴板。
 
 `ctx db export --format jsonl` 会把 active 记录输出为 JSONL。每行包含 `schema_version`、`id`、`key`、`title`、`content`、`tags`、`service`、`env`、`source`、`created_at` 和 `updated_at`。`ctx db import <file>` 导入相同 schema；如果目标库已经存在相同 `id` 或非空 `key`，该行会被跳过并计入 `skipped_duplicates`，不会覆盖现有记录。
+
+`ctx mcp` 通过 stdio 启动只读 MCP server。MVP 只提供这些工具：`search_context`、`get_context_by_key`、`list_tags`、`get_service_context`。MCP 不提供新增、导入、导出、修改、删除或命令执行能力。
+
+示例 MCP 配置：
+
+```json
+{
+  "mcpServers": {
+    "ctx-hub": {
+      "command": "ctx",
+      "args": ["--db", "/absolute/path/to/ctx-hub.db", "mcp"]
+    }
+  }
+}
+```
 
 ## AI 使用方式
 

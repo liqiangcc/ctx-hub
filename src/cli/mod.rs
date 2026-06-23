@@ -8,6 +8,7 @@ use std::process::{Command, Stdio};
 use crate::core::jsonl::{read_jsonl, write_jsonl};
 use crate::core::output::{format_record_detail, print_record_detail, print_results, print_tags};
 use crate::core::record::RecordInput;
+use crate::mcp;
 use crate::storage::sqlite::SqliteStorage;
 
 #[derive(Parser, Debug)]
@@ -80,6 +81,8 @@ enum Commands {
         #[arg(long, help = "Print the selected value instead of using the clipboard")]
         print: bool,
     },
+    #[command(about = "Run the read-only MCP server over stdio")]
+    Mcp,
 }
 
 #[derive(Subcommand, Debug)]
@@ -167,6 +170,10 @@ pub fn run() -> Result<()> {
         } => {
             storage.init()?;
             copy_record(&storage, &key_or_id, field, print)?;
+        }
+        Commands::Mcp => {
+            storage.init()?;
+            mcp::serve_stdio(&storage)?;
         }
     }
 
