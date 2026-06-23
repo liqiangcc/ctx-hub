@@ -6,7 +6,6 @@ pub fn make_fts_query(query: &str) -> String {
         .join(" ")
 }
 
-#[rustfmt::skip]
 #[cfg(test)]
 mod tests {
     use super::*;
