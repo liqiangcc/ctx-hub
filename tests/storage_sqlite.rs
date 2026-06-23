@@ -9,10 +9,7 @@ fn temp_db_path() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("system time before unix epoch")
         .as_nanos();
-    std::env::temp_dir().join(format!(
-        "ctx-hub-storage-{}-{nanos}.db",
-        std::process::id()
-    ))
+    std::env::temp_dir().join(format!("ctx-hub-storage-{}-{nanos}.db", std::process::id()))
 }
 
 #[test]
