@@ -5,8 +5,10 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use crate::core::ngram::make_search_ngrams;
+use crate::core::query::make_fts_query;
 use crate::core::record::{RecordDetail, RecordInput};
 use crate::core::search::SearchResult;
+use crate::storage::{schema, Storage};
 
 pub struct SqliteStorage {
     conn: Connection,
@@ -25,67 +27,7 @@ impl SqliteStorage {
     }
 
     pub fn init(&self) -> Result<()> {
-        self.conn.execute_batch(
-            r#"
-            PRAGMA foreign_keys = ON;
-            PRAGMA journal_mode = WAL;
-
-            CREATE TABLE IF NOT EXISTS records (
-              rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-              id TEXT NOT NULL UNIQUE,
-              key TEXT UNIQUE,
-              title TEXT NOT NULL,
-              content TEXT NOT NULL,
-              tags_json TEXT NOT NULL DEFAULT '[]',
-              tags_text TEXT NOT NULL DEFAULT '',
-              service TEXT,
-              env TEXT,
-              source TEXT,
-              status TEXT NOT NULL DEFAULT 'active',
-              created_at TEXT NOT NULL,
-              updated_at TEXT NOT NULL,
-              usage_count INTEGER NOT NULL DEFAULT 0,
-              search_ngrams TEXT NOT NULL DEFAULT ''
-            );
-
-            CREATE VIRTUAL TABLE IF NOT EXISTS records_fts USING fts5(
-              key,
-              title,
-              content,
-              tags_text,
-              service,
-              env,
-              source,
-              search_ngrams,
-              content='records',
-              content_rowid='rowid',
-              tokenize='unicode61 remove_diacritics 0',
-              prefix='2 3 4'
-            );
-
-            CREATE VIRTUAL TABLE IF NOT EXISTS records_trigram USING fts5(
-              title,
-              content,
-              key,
-              tags_text,
-              service,
-              env,
-              source,
-              content='records',
-              content_rowid='rowid',
-              tokenize='trigram'
-            );
-
-            CREATE TRIGGER IF NOT EXISTS records_ai AFTER INSERT ON records BEGIN
-              INSERT INTO records_fts(rowid, key, title, content, tags_text, service, env, source, search_ngrams)
-              VALUES (new.rowid, new.key, new.title, new.content, new.tags_text, new.service, new.env, new.source, new.search_ngrams);
-
-              INSERT INTO records_trigram(rowid, title, content, key, tags_text, service, env, source)
-              VALUES (new.rowid, new.title, new.content, new.key, new.tags_text, new.service, new.env, new.source);
-            END;
-            "#,
-        )?;
-        Ok(())
+        schema::init_schema(&self.conn)
     }
 
     pub fn record_count(&self) -> Result<i64> {
@@ -329,6 +271,44 @@ impl SqliteStorage {
     }
 }
 
+impl Storage for SqliteStorage {
+    fn path(&self) -> &Path {
+        SqliteStorage::path(self)
+    }
+
+    fn init(&self) -> Result<()> {
+        SqliteStorage::init(self)
+    }
+
+    fn record_count(&self) -> Result<i64> {
+        SqliteStorage::record_count(self)
+    }
+
+    fn rebuild_index(&self) -> Result<()> {
+        SqliteStorage::rebuild_index(self)
+    }
+
+    fn insert_record(&self, record: &RecordInput) -> Result<()> {
+        SqliteStorage::insert_record(self, record)
+    }
+
+    fn search_records(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>> {
+        SqliteStorage::search_records(self, query, limit)
+    }
+
+    fn get_record(&self, key_or_id: &str) -> Result<Option<RecordDetail>> {
+        SqliteStorage::get_record(self, key_or_id)
+    }
+
+    fn search_by_tag(&self, tag: &str, limit: usize) -> Result<Vec<SearchResult>> {
+        SqliteStorage::search_by_tag(self, tag, limit)
+    }
+
+    fn list_tags(&self) -> Result<BTreeMap<String, usize>> {
+        SqliteStorage::list_tags(self)
+    }
+}
+
 fn resolve_db_path(cli_db: Option<&PathBuf>) -> Result<PathBuf> {
     if let Some(path) = cli_db {
         return Ok(path.clone());
@@ -348,12 +328,4 @@ fn open_db(path: &Path) -> Result<Connection> {
             .with_context(|| format!("failed to create db directory: {}", parent.display()))?;
     }
     Connection::open(path).with_context(|| format!("failed to open db: {}", path.display()))
-}
-
-fn make_fts_query(query: &str) -> String {
-    query
-        .split_whitespace()
-        .map(|token| format!("\"{}\"", token.replace('"', "\"\"")))
-        .collect::<Vec<_>>()
-        .join(" ")
 }
