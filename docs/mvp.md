@@ -189,10 +189,10 @@ MCP 首期只提供查询能力，不提供修改和删除能力。
 
 AI 可使用的能力包括：
 
-- 关键词搜索上下文
-- 标签筛选上下文
-- Key 精确获取记录
-- 获取某个服务相关上下文
+- `search_context`：关键词搜索上下文
+- `list_tags`：列出标签
+- `get_context_by_key`：Key 精确获取记录
+- `get_service_context`：获取某个服务相关上下文
 
 AI 不应通过 MCP：
 

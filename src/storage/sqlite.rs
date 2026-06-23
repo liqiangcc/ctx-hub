@@ -291,6 +291,37 @@ impl SqliteStorage {
             .map_err(Into::into)
     }
 
+    pub fn search_by_service(&self, service: &str, limit: usize) -> Result<Vec<SearchResult>> {
+        let service = service.trim();
+        if service.is_empty() || limit == 0 {
+            return Ok(Vec::new());
+        }
+
+        let mut stmt = self.conn.prepare(
+            r#"
+            SELECT rowid, key, title, tags_text, service, env, substr(content, 1, 160)
+            FROM records
+            WHERE service = ?1
+            ORDER BY updated_at DESC
+            LIMIT ?2
+            "#,
+        )?;
+        let rows = stmt.query_map(params![service, limit as i64], |row| {
+            Ok(SearchResult {
+                rowid: row.get(0)?,
+                key: row.get(1)?,
+                title: row.get(2)?,
+                tags_text: row.get(3)?,
+                service: row.get(4)?,
+                env: row.get(5)?,
+                snippet: row.get(6)?,
+                match_kind: "service".to_string(),
+            })
+        })?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Into::into)
+    }
+
     pub fn list_tags(&self) -> Result<BTreeMap<String, usize>> {
         let mut stmt = self
             .conn
@@ -378,6 +409,10 @@ impl Storage for SqliteStorage {
 
     fn search_by_tag(&self, tag: &str, limit: usize) -> Result<Vec<SearchResult>> {
         SqliteStorage::search_by_tag(self, tag, limit)
+    }
+
+    fn search_by_service(&self, service: &str, limit: usize) -> Result<Vec<SearchResult>> {
+        SqliteStorage::search_by_service(self, service, limit)
     }
 
     fn list_tags(&self) -> Result<BTreeMap<String, usize>> {
