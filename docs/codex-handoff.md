@@ -2,38 +2,65 @@
 
 This document is the working handoff for continuing `liqiangcc/ctx-hub` with Codex.
 
-## Current repository state
+## Current Repository State
 
 Repository: `liqiangcc/ctx-hub`
 
-Current branch: `feat/mvp-storage`
+Canonical branch: `main`
 
-Current pull request: PR #3, `MVP Stage 2: Formalize SQLite storage`
+Active MVP pull request: none
 
-Stage 1 has already been completed and merged.
+MVP status: Stage 1 through Stage 7 are complete and merged.
 
-Stage 2 is implemented in PR #3 and should be finished first before starting the next stage.
+Latest completed main commit:
 
-## What PR #3 contains
+```text
+d45c346 MVP Stage 7: Document release readiness
+```
 
-PR #3 formalizes the storage layer.
+The post-merge CI run for `d45c346` completed successfully on:
 
-Main changes:
+- `ubuntu-latest`
+- `macos-latest`
+- `windows-latest`
 
-- Added `src/lib.rs` so integration tests can import project modules.
-- Added `Storage` trait in `src/storage/mod.rs`.
-- Split SQLite schema into `src/storage/schema.rs`.
-- Added schema version tracking in `src/storage/migration.rs`.
-- Updated `SqliteStorage` to use schema and migration modules.
-- Implemented `Storage` for `SqliteStorage`.
-- Moved FTS query escaping into `src/core/query.rs`.
-- Added query escaping tests.
-- Added schema initialization tests.
-- Added migration tests.
-- Added SQLite integration tests in `tests/storage_sqlite.rs`.
-- Added CJK n-gram integration tests in `tests/ngram.rs`.
+CI run:
 
-## CI requirement
+```text
+https://github.com/liqiangcc/ctx-hub/actions/runs/28031166388
+```
+
+## Completed MVP Stages
+
+- Stage 1: project/module skeleton, merged through PR #2.
+- Stage 2: SQLite storage formalization, merged through PR #3.
+- Stage 3: search formalization, merged through PR #5.
+- Stage 4: CLI MVP, merged through PR #6.
+- Stage 5: JSONL import/export, merged through PR #7.
+- Stage 6: read-only MCP server, merged through PR #8.
+- Stage 7: release readiness, merged through PR #9.
+
+## Current MVP Capabilities
+
+The MVP now supports:
+
+- local SQLite-backed storage
+- schema initialization and migration tracking
+- exact key lookup
+- FTS5 full-text search
+- trigram substring search
+- CJK n-gram search
+- tag search
+- service-name search
+- human-readable CLI commands
+- `ctx copy`
+- JSONL import/export for backup and restore
+- read-only stdio MCP tools
+- README installation, database path, backup/restore, and MCP setup docs
+- CI on Linux, macOS, and Windows
+- release artifact workflow for tag or manual builds
+
+## CI Requirement
 
 Do not weaken CI.
 
@@ -51,14 +78,10 @@ CI must pass on:
 - `macos-latest`
 - `windows-latest`
 
-Before this handoff document was added, the current PR had a green effective CI run across all three platforms.
-
-After this file is committed, verify CI again before merging.
-
-## Rules for Codex
+## Rules For Codex
 
 - Keep changes small and focused.
-- Prefer one stage per PR.
+- Prefer one stage or one clear follow-up per PR.
 - Do not remove tests just to make CI pass.
 - Use real temporary SQLite databases for storage and search tests.
 - Keep CLI, storage, core logic, and MCP boundaries separate.
@@ -66,162 +89,7 @@ After this file is committed, verify CI again before merging.
 - Do not add unrelated infrastructure features to this project.
 - Update documentation when user-facing behavior changes.
 
-## Immediate next step
-
-Finish PR #3 first.
-
-Checklist:
-
-- Verify PR #3 CI is green after this handoff file is committed.
-- If CI fails, fix the real failure and keep all CI gates strict.
-- Remove draft status only after CI is green and the user approves.
-- Merge PR #3 into `main` only after approval.
-
-Do not start Stage 3 until PR #3 is merged or the user explicitly asks to continue on the same branch.
-
-## Stage 3: search formalization
-
-After PR #3 is merged, create a new branch from `main` named `feat/mvp-search`.
-
-Goal: make search behavior explicit, tested, and stable.
-
-Tasks:
-
-- Make exact key match highest priority.
-- Keep FTS5 search for normal full-text lookup.
-- Keep trigram search for substring lookup.
-- Keep CJK n-gram search for short Chinese terms.
-- Add service-name search tests.
-- Add command-fragment search tests.
-- Add tag search tests.
-- Add FTS escaping edge-case tests.
-- Add snippet behavior tests.
-- Keep storage/search tests backed by real SQLite temporary databases.
-
-Acceptance criteria:
-
-- Exact key search returns the intended record first.
-- Chinese short-term search works.
-- English keyword search works.
-- Service-name search works.
-- Command-fragment search works.
-- Special query characters do not break search.
-- Search results include useful snippets.
-- CI passes on all three platforms.
-
-Suggested test files:
-
-- `tests/search_fts.rs`
-- `tests/search_cjk.rs`
-- `tests/search_trigram.rs`
-- `tests/search_ranking.rs`
-
-## Stage 4: CLI MVP
-
-After Stage 3 is merged, create a new branch from `main` named `feat/mvp-cli`.
-
-Expected CLI commands for MVP:
-
-- `ctx db init`
-- `ctx db info`
-- `ctx db rebuild-index`
-- `ctx add`
-- `ctx search <keyword>`
-- `ctx show <key-or-id>`
-- `ctx tag <tag>`
-- `ctx list-tags`
-- `ctx copy <key-or-id>`
-
-Tasks:
-
-- Improve CLI help text.
-- Improve CLI error messages.
-- Implement `ctx copy <key-or-id>`.
-- Expand CLI smoke tests.
-- Keep output readable for humans.
-
-Acceptance criteria:
-
-- CLI works with a temporary database path.
-- Add, search, show, tag, list-tags, db info, and rebuild-index work.
-- Copy behavior is documented and tested.
-- CI passes on all three platforms.
-
-## Stage 5: JSONL import and export
-
-Create a branch named `feat/jsonl-import-export`.
-
-Expected commands:
-
-- `ctx db export --format jsonl`
-- `ctx db import <file>`
-
-Tasks:
-
-- Define a stable JSONL record schema.
-- Export active records.
-- Import records into a new database.
-- Define duplicate key behavior.
-- Add import/export round-trip tests.
-
-Acceptance criteria:
-
-- Export creates valid JSONL.
-- Import restores records into a new database.
-- Duplicate key behavior is explicit.
-- Search works after import.
-- CI passes.
-
-## Stage 6: read-only MCP
-
-Create a branch named `feat/mcp-readonly`.
-
-Expected tools:
-
-- `search_context`
-- `get_context_by_key`
-- `list_tags`
-- `get_service_context`
-
-Rules:
-
-- MCP must call core or storage APIs.
-- MCP must not duplicate database logic.
-- MCP must stay read-only for MVP.
-- Add tests that prove read-only behavior.
-
-Acceptance criteria:
-
-- MCP can search context.
-- MCP can get one record by key.
-- MCP can list tags.
-- MCP can return service-related context.
-- Documentation includes a basic MCP configuration example.
-- CI passes.
-
-## Stage 7: release readiness
-
-Create a branch named `feat/release-readiness`.
-
-Tasks:
-
-- Update README installation steps.
-- Document default database path.
-- Document `CTX_HUB_DB`.
-- Document backup and restore.
-- Document MCP setup.
-- Add release workflow if needed.
-
-Acceptance criteria:
-
-- User can build and run the CLI from README.
-- User can initialize a database.
-- User can add and search records.
-- User can configure MCP.
-- User can back up and restore data.
-- CI passes.
-
-## Definition of done for MVP
+## Definition Of Done For MVP
 
 The MVP is done when:
 
@@ -233,12 +101,43 @@ The MVP is done when:
 - README explains setup and usage.
 - CI passes on Linux, macOS, and Windows.
 
-## Codex starting instruction
+All items above are complete as of `d45c346`.
+
+## Immediate Next Step
+
+There is no remaining MVP implementation stage in this handoff.
+
+Recommended next action after this handoff update is merged:
+
+1. Create a `v0.1.0` tag from the latest `main`.
+2. Push the tag to trigger `.github/workflows/release.yml`.
+3. Verify the release artifact workflow uploads Linux, macOS, and Windows binaries.
+
+Use the existing package version in `Cargo.toml`:
+
+```text
+0.1.0
+```
+
+Do not start a broad post-MVP feature stage until the user explicitly asks for a new roadmap or selects a follow-up issue.
+
+## Suggested Post-MVP Backlog
+
+Possible follow-ups after `v0.1.0`:
+
+- Create a GitHub Release from the generated artifacts.
+- Add checksums for release binaries.
+- Add shell completion generation.
+- Improve install instructions for Homebrew, Scoop, or direct binary downloads.
+- Add update and delete commands.
+- Add record editing commands.
+- Add more structured filters for service, environment, source, and status.
+- Dogfood the CLI with real records and turn friction into small issues.
+
+## Codex Starting Instruction
 
 When Codex starts, read this file first.
 
-Start by checking the current branch and PR status.
+Start by checking the current branch, working tree status, and latest `main` CI status.
 
-If PR #3 is still open, finish PR #3 first. After it is green and approved, merge it into `main`. Then start Stage 3 on a new branch.
-
-Always keep CI strict and do not remove tests to make CI pass.
+If the user says to execute the next step and no newer roadmap exists, continue with the `v0.1.0` tag and release-artifact verification flow described above.
